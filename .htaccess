@@ -1,0 +1,20 @@
+RewriteEngine On
+
+# Redirect all traffic to the Node.js application
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ http://localhost:3020/$1 [P,L]
+
+# Optional: Set up environment variables or headers
+# For example, to add X-Forwarded-For header
+RequestHeader set X-Forwarded-For "%{REMOTE_ADDR}s"
+
+# Disable directory listing
+Options -Indexes
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Set the “ea-php73” package as the default “PHP” programming language.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php73 .php .php7 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
