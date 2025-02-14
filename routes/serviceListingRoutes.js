@@ -33,12 +33,45 @@ const upload = multer({ storage });
 // const upload = multer({ storage });
 
 // Routes
+
+router.post(
+  "/listing",
+  upload.fields([
+    { name: "media", maxCount: 10 },
+    { name: "floorPlans", maxCount: 5 }
+  ]),
+  serviceListingController.createListing
+);
+
+
 router.post("/service", upload.single("media"), serviceListingController.createServiceListing);
-router.post("/property", upload.single("media"), serviceListingController.createPropertyListing);
+// router.post("/property", upload.single("media"), serviceListingController.createPropertyListing);
+
+
+router.post("/property", upload.fields([
+  { name: "media", maxCount: 10 }, 
+  { name: "floorPlans", maxCount: 5 }
+]), serviceListingController.createPropertyListing);
+
+
+
+router.put(
+  "/edit-listing",
+  upload.fields([
+      { name: "displayImages", maxCount: 10 },
+      { name: "floorPlanPaths", maxCount: 5 },
+  ]),serviceListingController.editListing);
+
+
+
+  router.post('/create-resource', serviceListingController.createResource);
+  router.get('/all-resource', serviceListingController.getResource);
+
 router.get("/", serviceListingController.getAllListings);
+router.get("/properties", serviceListingController.getAllProperties);
 router.get("/service", serviceListingController.getAllServiceListings);
-router.get("/property", serviceListingController.getAllPropertyListings);
-router.get("/getById/:id", serviceListingController.getServiceListingById);
+router.get("/property", serviceListingController.getAllProperties);
+router.get("/getById/:id", serviceListingController.getListingDetails);
 router.delete("/:id", serviceListingController.deleteServiceListing);
 router.put("/update-status", serviceListingController.updateServiceListingStatus);
 router.get("/overview", serviceListingController.getServiceStats);

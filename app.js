@@ -22,7 +22,7 @@ app.use(bodyParser.json());
 
 // this are the various routes
 app.use("/uploads", express.static("uploads")); // Serve static files
-app.use("/api/listings", serviceListingRoutes);
+app.use("/api/listings/", serviceListingRoutes);
 app.use("/api", featureRouter);
 app.use("/api/bookings", bookingRouter);
 app.use('/api/admin', authRoutes);
