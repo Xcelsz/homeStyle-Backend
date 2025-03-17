@@ -15,66 +15,50 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Upload field configurations
+const multipleUploads = upload.fields([
+  { name: "media", maxCount: 10 },
+  { name: "floorPlans", maxCount: 5 },
+  { name: "ownership", maxCount: 5 },
+  { name: "frontMedia", maxCount: 1 }
+]);
 
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     const uploadPath = path.join(__dirname, 'uploads');
-//     if (!fs.existsSync(uploadPath)) {
-//       fs.mkdirSync(uploadPath); // Create the directory if it doesn't exist
-//     }
-//     cb(null, uploadPath);
-//   },
-//   filename: (req, file, cb) => {
-//     const filename = `${Date.now()}_${file.originalname}`;
-//     cb(null, filename);
-//   },
-// });
+const editUploads = upload.fields([
+  { name: "displayImages", maxCount: 10 },
+  { name: "floorPlanPaths", maxCount: 5 },
+  { name: "ownership", maxCount: 5 }
+]);
 
-// const upload = multer({ storage });
+// Listing Routes
+router.post("/listing", multipleUploads, serviceListingController.createListing);
+router.put("/edit-listing", editUploads, serviceListingController.editListing);
 
-// Routes
-
-router.post(
-  "/listing",
-  upload.fields([
-    { name: "media", maxCount: 10 },
-    { name: "floorPlans", maxCount: 5 }
-  ]),
-  serviceListingController.createListing
-);
-
-
+// Service Routes
 router.post("/service", upload.single("media"), serviceListingController.createServiceListing);
-// router.post("/property", upload.single("media"), serviceListingController.createPropertyListing);
-
-
-router.post("/property", upload.fields([
-  { name: "media", maxCount: 10 }, 
-  { name: "floorPlans", maxCount: 5 }
-]), serviceListingController.createPropertyListing);
-
-
-
-router.put(
-  "/edit-listing",
-  upload.fields([
-      { name: "displayImages", maxCount: 10 },
-      { name: "floorPlanPaths", maxCount: 5 },
-  ]),serviceListingController.editListing);
-
-
-
-  router.post('/create-resource', serviceListingController.createResource);
-  router.get('/all-resource', serviceListingController.getResource);
-
-router.get("/", serviceListingController.getAllListings);
-router.get("/properties", serviceListingController.getAllProperties);
 router.get("/service", serviceListingController.getAllServiceListings);
-router.get("/property", serviceListingController.getAllProperties);
-router.get("/getById/:id", serviceListingController.getListingDetails);
-router.delete("/:id", serviceListingController.deleteServiceListing);
-router.put("/update-status", serviceListingController.updateServiceListingStatus);
-router.get("/overview", serviceListingController.getServiceStats);
+router.get("/published-service", serviceListingController.getAllServiceListings);
 
+// Property Routes
+router.post("/property", multipleUploads, serviceListingController.createPropertyListing);
+router.get("/property", serviceListingController.getAllProperties);
+router.get("/published-property", serviceListingController.getPublishedProperties);
+router.get("/client-published", serviceListingController.getSixPublishedProperties);
+
+// Addons Routes
+router.get("/addons", serviceListingController.getAllAddons);
+router.get("/published-addons", serviceListingController.getPublishedAddons);
+
+// Resource Routes
+router.post("/create-resource", serviceListingController.createResource);
+router.get("/all-resource", serviceListingController.getResource);
+router.get("/resource", serviceListingController.getResource);
+router.get("/published-resource", serviceListingController.getPublishedResources);
+
+// Miscellaneous Routes
+router.get("/", serviceListingController.getAllListings);
+router.get("/overview", serviceListingController.getServiceStats);
+router.get("/getById/:id/:listingType", serviceListingController.getListingDetails);
+router.put("/update-status", serviceListingController.updateServiceListingStatus);
+router.delete("/:id", serviceListingController.deleteServiceListing);
 
 module.exports = router;

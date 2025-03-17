@@ -2,7 +2,213 @@ const pool = require("../database/db");
 const fs = require("fs");
 const path = require("path");
 
+
+
+function safeParse(input) {
+  // If input is not a string, return it as-is (assuming it's already an array/object)
+  if (typeof input !== 'string') return input;
+
+  try {
+    return JSON.parse(input);
+  } catch (e) {
+    // Attempt to replace single quotes with double quotes as a quick fix
+    try {
+      const fixedInput = input.replace(/'/g, '"');
+      return JSON.parse(fixedInput);
+    } catch (error) {
+      console.error("Failed to parse JSON:", input);
+      return [];
+    }
+  }
+}
+
+
 // Create a new service listing
+
+// exports.createListing = async (req, res) => {
+//   try {
+//     const {
+//       title,
+//       subtitle,
+//       serviceCategory,
+//       serviceLocation,
+//       serviceSummary,
+//       price,
+//       listingType,
+//       serviceDetails,
+//       status = "unpublished",
+//       PropertyNeed,
+//       generalInfo,
+//       localAmenities,
+//       propertyAmenities,
+//       size,
+//       parking,
+//       bedRoom,
+//       bathRoom,
+//       area,
+//       paymentOptions,
+//       features,
+//       location,
+//       videoLinks,
+//       faq,
+//       keyResults,
+//       category,
+//       total_minutes_read,
+//       overview,
+//       images,
+//     } = req.body;
+
+//     // Handle file uploads
+//     const displayImages = req.files?.media ? req.files.media.map(file => `/uploads/${file.filename}`) : [];
+//     const floorPlanPaths = req.files?.floorPlans ? req.files.floorPlans.map(file => `/uploads/${file.filename}`) : [];
+//     const mediaPath = displayImages.length > 0 ? displayImages[0] : null;
+//     const paragraphs = req.body.paragraphs ? req.body.paragraphs.split(',') : [];
+
+//     let foreignKeyId = null;
+//     let foreignKeyColumn = null;
+
+//     const tableDetails = {
+//       Service: {
+//         tableName: 'ServiceDetails',
+//         columns: `title, subtitle, display_image, service_category, service_location, service_type, service_summary, price, service_details, key_results, status, faq` ,
+//         values: [
+//           title,
+//           subtitle,
+//           mediaPath,
+//           serviceCategory,
+//           serviceLocation,
+//           listingType,
+//           serviceSummary,
+//           parseFloat(price) || 0,
+//           serviceDetails || "",
+//           JSON.stringify(keyResults || []),
+//           status,
+//           JSON.stringify(JSON.parse(faq || "[]")),
+//         ],
+//         foreignKeyColumn: "service_details_id",
+//       },
+//       Property: {
+//         tableName: 'PropertyDetails',
+//         columns: `category, PropertyNeed, title, subtitle, price, displayImage, serviceSummary, generalInfo, features, propertyAmenities, location, payment_options, status, service_details, service_type, size, bedRoom, parking, bathRoom, area, videoLinks, faq` ,
+//         values: [
+//           category,
+//           PropertyNeed,
+//           title,
+//           subtitle,
+//           price,
+//           mediaPath,
+//           serviceSummary,
+//           generalInfo,
+//           JSON.stringify(JSON.parse(features || "[]")),
+//           JSON.stringify(JSON.parse(propertyAmenities || "{}")),
+//           JSON.stringify(JSON.parse(location || "{}")),
+//           JSON.stringify(JSON.parse(paymentOptions || "[]")),
+//           status,
+//           serviceDetails || '',
+//           listingType || '',
+//           size || 0,
+//           bedRoom || 0,
+//           parking || 0,
+//           bathRoom || 0,
+//           area || '',
+//           JSON.stringify(JSON.parse(videoLinks || "[]")),
+//           JSON.stringify(JSON.parse(faq || "[]"))
+//         ],
+//         foreignKeyColumn: 'property_details_id'
+//       },
+//       Resource: {
+//         tableName: 'ResourceDetails',
+//         columns: `title, subtitle, total_minutes_read, overview, category, faq`,
+//         values: [title, subtitle, total_minutes_read, serviceSummary, category, JSON.stringify(JSON.parse(faq || "[]"))],
+//         foreignKeyColumn: 'resource_details_id'
+//       }
+//     };
+
+//     const listingDetails = tableDetails[listingType];
+//     if (!listingDetails) {
+//       return res.status(400).json({ message: "Invalid listingType for this API" });
+//     }
+
+//     // Insert into specific table (ServiceDetails, PropertyDetails, or ResourceDetails)
+//     const [result] = await pool.query(
+//       `INSERT INTO ${listingDetails.tableName} (${listingDetails.columns}) VALUES (${listingDetails.columns.split(', ').map(() => '?').join(', ')})`,
+//       listingDetails.values
+//     );
+
+//     foreignKeyId = result.insertId;
+//     foreignKeyColumn = listingDetails.foreignKeyColumn;
+
+//     // Insert into the parent table PropertyListings
+//     const [listingResult] = await pool.query(
+//       `INSERT INTO PropertyListings 
+//       (title, subtitle, display_image, short_description, status, type, subcategory, ${foreignKeyColumn}) 
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?)` ,
+//       [
+//         title,
+//         subtitle,
+//         mediaPath,
+//         serviceSummary,
+//         status,
+//         listingType,
+//         serviceCategory,
+//         foreignKeyId
+//       ]
+//     );
+
+//     const listingId = listingResult.insertId;
+
+//     // Insert additional property-specific data if applicable
+//     if (listingType === 'Property') {
+//       // Insert images into PropertyImages table
+//       const imagePromises = displayImages.map(url =>
+//         pool.query(`INSERT INTO PropertyImages (propertyId, imageUrl) VALUES (?, ?)`, [foreignKeyId, url])
+//       );
+
+//       // Insert floor plans into PropertyFloorPlans table
+//       const floorPlanPromises = floorPlanPaths.map(path =>
+//         pool.query(`INSERT INTO PropertyFloorPlans (propertyId, filePath) VALUES (?, ?)`, [foreignKeyId, path])
+//       );
+
+//       // Insert local amenities into PropertyAmenities table
+//       await pool.query(
+//         `INSERT INTO PropertyAmenities (propertyId, amenitiesData) VALUES (?, ?)` ,
+//         [foreignKeyId, JSON.stringify(JSON.parse(localAmenities || "{}"))]
+//       );
+
+//       await Promise.all([...imagePromises, ...floorPlanPromises]);
+//     }
+
+//     // Insert images and paragraphs for resource listings
+//     if (listingType === 'Resource') {
+//       displayImages.forEach((image, index) => {
+//         pool.query(`INSERT INTO ResourceImages (resource_id, image_url, position) VALUES (?, ?, ?)`, [foreignKeyId, image, index + 1]);
+//       });
+
+//       paragraphs.forEach((paragraph, index) => {
+//         pool.query(`INSERT INTO ResourceParagraphs (resource_id, paragraph, position) VALUES (?, ?, ?)`, [foreignKeyId, paragraph, index + 1]);
+//       });
+//     }
+
+//     // Fetch the newly created listing record
+//     const [newRecord] = await pool.query(
+//       `SELECT * FROM PropertyListings WHERE id = ?` ,
+//       [listingId]
+//     );
+
+//     res.status(201).json({
+//       message: "Listing created successfully",
+//       data: newRecord
+//     });
+//   } catch (error) {
+//     console.error("Error creating listing:", error);
+//     res.status(500).json({
+//       message: "Server error while creating listing",
+//       error: error.message
+//     });
+//   }
+// };
+
+
 
 exports.createListing = async (req, res) => {
   try {
@@ -31,13 +237,50 @@ exports.createListing = async (req, res) => {
       videoLinks,
       faq,
       keyResults,
-      category
+      category,
+      total_minutes_read,
+      overview,
+      images,
+      whyChoose,
+      whatsIncluded,
+      total,
+      propertyUsage,
+      whatsIncludedDetails,
+      expectedOutcome,
+      keyFeatures,
+      requestQuote,
+      occupancy,
+      propertyPrice,
+      propertyTax,
+      risks,
+      tenures,
+      registrations,
+      salesPrice,
+      ownership,
+      roads,
+      serviceLevel,
+      Cancellation,
+      CheckIn,
+      commissionOffice
     } = req.body;
+
+    console.log('====================================');
+    console.log(req.body);
+    console.log('====================================');
 
     // Handle file uploads
     const displayImages = req.files?.media ? req.files.media.map(file => `/uploads/${file.filename}`) : [];
+    const frontImage = req.files?.frontMedia ? req.files.frontMedia.map(file => `/uploads/${file.filename}`) : [];
     const floorPlanPaths = req.files?.floorPlans ? req.files.floorPlans.map(file => `/uploads/${file.filename}`) : [];
-    const mediaPath = displayImages.length > 0 ? displayImages[0] : null;
+    const ownershipPaths = req.files?.ownership ? req.files.ownership.map(file => `/uploads/${file.filename}`) : [];
+    const mediaPath1 = displayImages.length > 0 ? displayImages[0] : null;
+    const mediaPath = frontImage.length > 0 ? frontImage[0] : null;
+    const paragraphs = req.body.paragraphs ? req.body.paragraphs.split(',') : [];
+
+    // console.log('====================================');
+    // console.log(frontImage);
+    // console.log('====================================');
+
 
     let foreignKeyId = null;
     let foreignKeyColumn = null;
@@ -45,26 +288,31 @@ exports.createListing = async (req, res) => {
     const tableDetails = {
       Service: {
         tableName: 'ServiceDetails',
-        columns: `title, subtitle, display_image, service_category, service_location, service_type, service_summary, price, service_details, key_results, status, faq` ,
+        columns: `title, subtitle, display_image, serviceCategory, serviceLocation, area, listingType, serviceSummary, price, keyFeatures, whatsIncludedDetails, whatsIncluded, expectedOutcome, requestQuote, media, status, faq`,
         values: [
           title,
           subtitle,
-          mediaPath,
+          mediaPath1,
           serviceCategory,
           serviceLocation,
-          listingType, // Ensure service_type is correctly included
+          serviceLocation,
+          listingType,
           serviceSummary,
           parseFloat(price) || 0,
-          serviceDetails || "",
-          JSON.stringify(keyResults || []),  // ✅ Fix here
+          JSON.stringify(keyFeatures || []),
+          whatsIncludedDetails|| "",
+          JSON.stringify(whatsIncluded || []),
+          JSON.stringify(expectedOutcome || []),
+          requestQuote == 'true'? true : false,
+          JSON.stringify(displayImages || []),
           status,
-          JSON.stringify(JSON.parse(faq || "[]")),
+          JSON.stringify(JSON.parse(faq || "[]"))
         ],
         foreignKeyColumn: "service_details_id",
       },
       Property: {
         tableName: 'PropertyDetails',
-        columns: `category, PropertyNeed, title, subtitle, price, displayImage, serviceSummary, generalInfo, features, propertyAmenities, location, payment_options, status, service_details, service_type, size, bedRoom, parking, bathRoom, area, videoLinks, faq` ,
+        columns: `category, PropertyNeed, title, subtitle, price, displayImage, serviceSummary, generalInfo, features, propertyAmenities, location, payment_options, status, service_details, service_type, size, bedRoom, parking, bathRoom, area, videoLinks, faq, propertyUsage, total, occupancy, propertyPrice, propertyTax, risks, tenures, registrations, salesPrice, ownership, roads, serviceLevel, Cancellation, CheckIn, commissionOffice`,
         values: [
           category,
           PropertyNeed,
@@ -87,9 +335,50 @@ exports.createListing = async (req, res) => {
           bathRoom || 0,
           area || '',
           JSON.stringify(JSON.parse(videoLinks || "[]")),
-          JSON.stringify(JSON.parse(faq || "[]"))
+          JSON.stringify(JSON.parse(faq || "[]")),
+          propertyUsage || '',
+          total || '',
+          occupancy || '',
+          JSON.stringify(safeParse(propertyPrice || "[]")),
+          JSON.stringify(safeParse(propertyTax || "[]")),
+          JSON.stringify(safeParse(risks || "[]")),
+          JSON.stringify(safeParse(tenures || "[]")),
+          JSON.stringify(safeParse(registrations || "[]")),
+          JSON.stringify(safeParse(salesPrice || "[]")),
+          JSON.stringify(safeParse(ownership || "[]")),
+          JSON.stringify(safeParse(roads || "[]")),
+          JSON.stringify(safeParse(serviceLevel || "[]")),
+          JSON.stringify(safeParse(Cancellation || "[]")),
+          JSON.stringify(safeParse(CheckIn || "[]")),
+          commissionOffice || '',
         ],
         foreignKeyColumn: 'property_details_id'
+      },      
+      Resource: {
+        tableName: 'ResourceDetails',
+        columns: `title, subtitle, total_minutes_read, overview, category, faq`,
+        values: [title, subtitle, total_minutes_read, serviceSummary, category, JSON.stringify(JSON.parse(faq || "[]"))],
+        foreignKeyColumn: 'resource_details_id'
+      },
+      Addons: {
+        tableName: 'Addons',
+        columns: `title, subtitle, category, price, display_image, key_features_total, key_features_values, overview, general_info, why_choose, whats_included, status, faq`,
+        values: [
+          title,
+          subtitle,
+          category,
+          parseFloat(price) || 0,
+          mediaPath1,
+          (features && features.length) || 0,
+          JSON.stringify(JSON.parse(features || "[]")),
+          overview || "",
+          generalInfo || "",
+          whyChoose || "",
+          JSON.stringify(whatsIncluded ? whatsIncluded.split(',') : []),
+          status,
+          JSON.stringify(JSON.parse(faq || "[]"))
+        ],
+        foreignKeyColumn: "addons_id"
       }
     };
 
@@ -98,7 +387,7 @@ exports.createListing = async (req, res) => {
       return res.status(400).json({ message: "Invalid listingType for this API" });
     }
 
-    // Insert into specific table (ServiceDetails or PropertyDetails)
+    // Insert into specific table (ServiceDetails, PropertyDetails, ResourceDetails, or Addons)
     const [result] = await pool.query(
       `INSERT INTO ${listingDetails.tableName} (${listingDetails.columns}) VALUES (${listingDetails.columns.split(', ').map(() => '?').join(', ')})`,
       listingDetails.values
@@ -111,7 +400,7 @@ exports.createListing = async (req, res) => {
     const [listingResult] = await pool.query(
       `INSERT INTO PropertyListings 
       (title, subtitle, display_image, short_description, status, type, subcategory, ${foreignKeyColumn}) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)` ,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         title,
         subtitle,
@@ -137,19 +426,42 @@ exports.createListing = async (req, res) => {
       const floorPlanPromises = floorPlanPaths.map(path =>
         pool.query(`INSERT INTO PropertyFloorPlans (propertyId, filePath) VALUES (?, ?)`, [foreignKeyId, path])
       );
+      
+      const ownershipPromises = ownershipPaths.map(path =>
+        pool.query(`INSERT INTO PropertyOwnership (propertyId, filePath) VALUES (?, ?)`, [foreignKeyId, path])
+      );
 
       // Insert local amenities into PropertyAmenities table
       await pool.query(
-        `INSERT INTO PropertyAmenities (propertyId, amenitiesData) VALUES (?, ?)` ,
+        `INSERT INTO PropertyAmenities (propertyId, amenitiesData) VALUES (?, ?)`,
         [foreignKeyId, JSON.stringify(JSON.parse(localAmenities || "{}"))]
       );
 
-      await Promise.all([...imagePromises, ...floorPlanPromises]);
+      await Promise.all([...imagePromises, ...floorPlanPromises, ...ownershipPromises]);
+    }
+
+    // Insert images and paragraphs for resource listings
+    if (listingType === 'Resource') {
+      displayImages.forEach((image, index) => {
+        pool.query(`INSERT INTO ResourceImages (resource_id, image_url, position) VALUES (?, ?, ?)`, [foreignKeyId, image, index + 1]);
+      });
+
+      paragraphs.forEach((paragraph, index) => {
+        pool.query(`INSERT INTO ResourceParagraphs (resource_id, paragraph, position) VALUES (?, ?, ?)`, [foreignKeyId, paragraph, index + 1]);
+      });
+    }
+
+    // Insert images for Addons
+    if (listingType === 'Addons' && displayImages.length > 0) {
+      const imagePromises = displayImages.map(url =>
+        pool.query(`INSERT INTO AddonImages (addon_id, image_url) VALUES (?, ?)`, [foreignKeyId, url])
+      );
+      await Promise.all(imagePromises);
     }
 
     // Fetch the newly created listing record
     const [newRecord] = await pool.query(
-      `SELECT * FROM PropertyListings WHERE id = ?` ,
+      `SELECT * FROM PropertyListings WHERE id = ?`,
       [listingId]
     );
 
@@ -165,6 +477,16 @@ exports.createListing = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -259,6 +581,7 @@ exports.createPropertyListing = async (req, res) => {
       // Handle file uploads
       const displayImages = req.files.media ? req.files.media.map(file => `/uploads/${file.filename}`) : [];
       const floorPlanPaths = req.files.floorPlans ? req.files.floorPlans.map(file => `/uploads/${file.filename}`) : [];
+      const ownershipPaths = req.files.ownership ? req.files.ownership.map(file => `/uploads/${file.filename}`) : [];
 
       // Insert into database
       const [result] = await pool.query(
@@ -303,11 +626,15 @@ exports.createPropertyListing = async (req, res) => {
           pool.query(`INSERT INTO PropertyFloorPlans (propertyId, filePath) VALUES (?, ?)`, [propertyId, path])
       );
 
+      const ownershipPromises = ownershipPaths.map(path =>
+          pool.query(`INSERT INTO PropertyOwnership (propertyId, filePath) VALUES (?, ?)`, [propertyId, path])
+      );
+
       // Insert local amenities into PropertyAmenities table
       await pool.query(`INSERT INTO PropertyAmenities (propertyId, amenitiesData) VALUES (?, ?)`, [propertyId, JSON.stringify(localAmenities)]);
 
       // Wait for all insertions to finish
-      await Promise.all([...imagePromises, ...floorPlanPromises]);
+      await Promise.all([...imagePromises, ...floorPlanPromises, ...ownershipPromises]);
 
       // Fetch the newly created property record
       const [newRecord] = await pool.query(`SELECT * FROM PropertyDetails WHERE property_details_id = ?`, [propertyId]);
@@ -509,13 +836,7 @@ exports.createResource = (req, res) => {
 };
 
 // Get all blogs
-exports.getResource = (req, res) => {
-  const sql = `SELECT * FROM ResourceDetails`;
-  db.query(sql, (err, results) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(200).json(results);
-  });
-};
+
 
 
 
@@ -530,33 +851,141 @@ exports.getResource = (req, res) => {
 
 
 // Fetch listing details along with child data
+// exports.getListingDetails = async (req, res) => {
+//   try {
+//       const { id } = req.params;
+      
+//       // Get the listing details
+//       const [listing] = await pool.query(`SELECT * FROM PropertyListings WHERE id = ?`, [id]);
+//       if (!listing.length) return res.status(404).json({ message: "Listing not found" });
+      
+//       const { property_details_id, service_details_id } = listing[0];
+//       let childData = null;
+      
+//       if (property_details_id) {
+//           const [propertyDetails] = await pool.query(`SELECT * FROM PropertyDetails WHERE property_details_id = ?`, [property_details_id]);
+//           const [propertyImages] = await pool.query(`SELECT * FROM PropertyImages WHERE propertyId = ?`, [property_details_id]);
+//           const [propertyFloorPlans] = await pool.query(`SELECT * FROM PropertyFloorPlans WHERE propertyId = ?`, [property_details_id]);
+//           const [propertyAmenities] = await pool.query(`SELECT * FROM PropertyAmenities WHERE propertyId = ?`, [property_details_id]);
+          
+//           childData = { propertyDetails, propertyImages, propertyFloorPlans, propertyAmenities };
+//       } else if (service_details_id) {
+//           const [serviceDetails] = await pool.query(`SELECT * FROM ServiceDetails WHERE service_details_id = ?`, [service_details_id]);
+//           childData = { serviceDetails };
+//       }
+      
+//       res.json({ listing: listing[0], childData });
+//   } catch (error) {
+//       console.error("Error fetching listing details:", error);
+//       res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 exports.getListingDetails = async (req, res) => {
   try {
-      const { id } = req.params;
+      const { id,listingType } = req.params;
       
-      // Get the listing details
-      const [listing] = await pool.query(`SELECT * FROM PropertyListings WHERE id = ?`, [id]);
-      if (!listing.length) return res.status(404).json({ message: "Listing not found" });
       
-      const { property_details_id, service_details_id } = listing[0];
       let childData = null;
       
-      if (property_details_id) {
-          const [propertyDetails] = await pool.query(`SELECT * FROM PropertyDetails WHERE property_details_id = ?`, [property_details_id]);
-          const [propertyImages] = await pool.query(`SELECT * FROM PropertyImages WHERE propertyId = ?`, [property_details_id]);
-          const [propertyFloorPlans] = await pool.query(`SELECT * FROM PropertyFloorPlans WHERE propertyId = ?`, [property_details_id]);
-          const [propertyAmenities] = await pool.query(`SELECT * FROM PropertyAmenities WHERE propertyId = ?`, [property_details_id]);
+      if (listingType == 'property') {
+          const [propertyDetails] = await pool.query(`SELECT * FROM PropertyDetails WHERE property_details_id = ?`, [id]);
+          const [propertyImages] = await pool.query(`SELECT * FROM PropertyImages WHERE propertyId = ?`, [id]);
+          const [propertyFloorPlans] = await pool.query(`SELECT * FROM PropertyFloorPlans WHERE propertyId = ?`, [id]);
+          const [propertyAmenities] = await pool.query(`SELECT * FROM PropertyAmenities WHERE propertyId = ?`, [id]);
           
           childData = { propertyDetails, propertyImages, propertyFloorPlans, propertyAmenities };
-      } else if (service_details_id) {
-          const [serviceDetails] = await pool.query(`SELECT * FROM ServiceDetails WHERE service_details_id = ?`, [service_details_id]);
+      } else if (listingType == 'service') {
+          const [serviceDetails] = await pool.query(`SELECT * FROM ServiceDetails WHERE service_details_id = ?`, [id]);
           childData = { serviceDetails };
+      }else if (listingType == 'addons') {
+          const [addonsDetails] = await pool.query(`SELECT * FROM Addons WHERE id = ?`, [id]);
+          const [addonsImages] = await pool.query(`SELECT * FROM AddonImages WHERE addon_id = ?`, [id]);
+          childData = { addonsDetails, addonsImages };
+      }else if (listingType == 'resource') {
+          const [resourceDetails] = await pool.query(`SELECT * FROM ResourceDetails WHERE id = ?`, [id]);
+          const [resourceImages] = await pool.query(`SELECT * FROM ResourceImages WHERE resource_id = ?`, [id]);
+          childData = { resourceDetails, resourceImages };
       }
       
-      res.json({ listing: listing[0], childData });
+      res.json({ childData });
   } catch (error) {
       console.error("Error fetching listing details:", error);
       res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+
+
+
+exports.getAllAddons = async (req, res) => {
+  try {
+      // Fetch all addons
+      const [addons] = await pool.query(`SELECT * FROM Addons ORDER BY id DESC`);
+
+      if (addons.length === 0) {
+          return res.status(404).json({ message: "No addons found." });
+      }
+
+      // Fetch related data for each addon
+      const addonsWithDetails = await Promise.all(addons.map(async (addon) => {
+          const [images] = await pool.query(`SELECT image_url FROM AddonImages WHERE addon_id = ?`, [addon.id]);
+
+          return {
+              ...addon, // Fix: Spread the actual addon object
+              images: images.map(img => img.image_url), // Attach images properly
+          };
+      }));
+
+      res.status(200).json({
+          message: "addons retrieved successfully",
+          data: addonsWithDetails
+      });
+
+  } catch (error) {
+      console.error("Error fetching addons:", error);
+      res.status(500).json({
+          message: "Server error while fetching addons",
+          error: error.message
+      });
+  }
+};
+
+
+exports.getResource = async (req, res) => {
+  try {
+      // Fetch all resource
+      const [resources] = await pool.query(`SELECT * FROM ResourceDetails ORDER BY id DESC`);
+
+      if (resources.length === 0) {
+          return res.status(404).json({ message: "No resource found." });
+      }
+
+       // Fetch related data for each addon
+       const resourceWithDetails = await Promise.all(resources.map(async (resource) => {
+        const [images] = await pool.query(`SELECT image_url FROM ResourceImages WHERE resource_id = ?`, [resource.id]);
+        const [paragraphs] = await pool.query(`SELECT paragraph, position FROM ResourceParagraphs WHERE resource_id = ?`, [resource.id]);
+
+        return {
+            ...resource, // Fix: Spread the actual addon object
+            images: images.map(img => img.image_url), // Attach images properly
+            paragraph: paragraphs
+        };
+    }));
+
+      res.status(200).json({
+          message: "resource retrieved successfully",
+          data: resourceWithDetails
+      });
+
+  } catch (error) {
+      console.error("Error fetching resource:", error);
+      res.status(500).json({
+          message: "Server error while fetching addons",
+          error: error.message
+      });
   }
 };
 
@@ -594,10 +1023,58 @@ exports.getListingDetails = async (req, res) => {
 // };
 
 
+// exports.getAllProperties = async (req, res) => {
+//   try {
+//       // Fetch all properties
+//       const [properties] = await pool.query(`SELECT * FROM PropertyDetails WHERE status = 'published' ORDER BY property_details_id DESC LIMIT 6`);
+
+//       if (properties.length === 0) {
+//           return res.status(404).json({ message: "No properties found." });
+//       }
+
+//       // Fetch related data for each property
+//       const propertiesWithDetails = await Promise.all(properties.map(async (property) => {
+       
+//           const [images] = await pool.query(`SELECT imageUrl FROM PropertyImages WHERE propertyId = ?`, [property.property_details_id]);
+//           const [floorPlans] = await pool.query(`SELECT filePath FROM PropertyFloorPlans WHERE propertyId = ?`, [property.property_details_id]);
+//           const [amenities] = await pool.query(`SELECT amenitiesData FROM PropertyAmenities WHERE propertyId = ?`, [property.property_details_id]);
+
+//           console.log('====================================');
+//           console.log(amenities);
+//           console.log('====================================');
+//           return {
+//               ...property,
+//               // location: property.location ? JSON.parse(property.location) : {},
+//               // paymentOptions: property.paymentOptions ? JSON.parse(property.paymentOptions) : [],
+//               // videoLinks: property.videoLinks ? JSON.parse(property.videoLinks) : [],
+//               // faq: property.faq ? JSON.parse(property.faq) : [],
+//               images: images.map(img => img.imageUrl),
+//               floorPlans: floorPlans.map(plan => plan.filePath),
+//               localAmenities: (amenities.length > 0 && amenities[0].amenitiesData) 
+//               ? (typeof amenities[0].amenitiesData === "string" ? JSON.parse(amenities[0].amenitiesData) : amenities[0].amenitiesData) 
+//               : {},
+          
+//           };
+//       }));
+
+//       res.status(200).json({
+//           message: "Properties retrieved successfully",
+//           data: propertiesWithDetails
+//       });
+
+//   } catch (error) {
+//       console.error("Error fetching properties:", error);
+//       res.status(500).json({
+//           message: "Server error while fetching properties",
+//           error: error.message
+//       });
+//   }
+// };
+
 exports.getAllProperties = async (req, res) => {
   try {
       // Fetch all properties
-      const [properties] = await pool.query(`SELECT * FROM PropertyDetails ORDER BY property_details_id DESC LIMIT 6`);
+      const [properties] = await pool.query(`SELECT * FROM PropertyDetails ORDER BY property_details_id DESC`);
 
       if (properties.length === 0) {
           return res.status(404).json({ message: "No properties found." });
@@ -609,6 +1086,7 @@ exports.getAllProperties = async (req, res) => {
           const [images] = await pool.query(`SELECT imageUrl FROM PropertyImages WHERE propertyId = ?`, [property.property_details_id]);
           const [floorPlans] = await pool.query(`SELECT filePath FROM PropertyFloorPlans WHERE propertyId = ?`, [property.property_details_id]);
           const [amenities] = await pool.query(`SELECT amenitiesData FROM PropertyAmenities WHERE propertyId = ?`, [property.property_details_id]);
+          const [ownerships] = await pool.query(`SELECT filePath FROM PropertyOwnership WHERE propertyId = ?`, [property.property_details_id]);
 
           console.log('====================================');
           console.log(amenities);
@@ -621,6 +1099,7 @@ exports.getAllProperties = async (req, res) => {
               // faq: property.faq ? JSON.parse(property.faq) : [],
               images: images.map(img => img.imageUrl),
               floorPlans: floorPlans.map(plan => plan.filePath),
+              ownership: ownerships.map(owner => owner.filePath),
               localAmenities: (amenities.length > 0 && amenities[0].amenitiesData) 
               ? (typeof amenities[0].amenitiesData === "string" ? JSON.parse(amenities[0].amenitiesData) : amenities[0].amenitiesData) 
               : {},
@@ -924,32 +1403,116 @@ exports.deleteServiceListing = async (req, res) => {
 
 
 // Update status of listing and its related foreign table
+// exports.updateServiceListingStatus = async (req, res) => {
+//   try {
+//       const { id, status, listingType } = req.body;
+//       console.log('====================================');
+//       console.log(req.body);
+//       console.log('====================================');
+      
+//       // Get the listing details
+//       const [listing] = await pool.query(`SELECT * FROM PropertyListings WHERE id = ?`, [id]);
+//       if (!listing.length) return res.status(404).json({ message: "Listing not found" });
+      
+//       const { property_details_id, service_details_id, resource_details_id, addons_id } = listing[0];
+      
+//       // Update status in parent table
+//       await pool.query(`UPDATE PropertyListings SET status = ? WHERE id = ?`, [status, id]);
+      
+//       // Update status in related child tables
+//       if (property_details_id) {
+//           await pool.query(`UPDATE PropertyDetails SET status = ? WHERE property_details_id = ?`, [status, property_details_id]);
+//       } else if (service_details_id) {
+//           await pool.query(`UPDATE ServiceDetails SET status = ? WHERE 	service_details_id = ?`, [status, service_details_id]);
+//       } else if (resource_details_id) {
+//           await pool.query(`UPDATE ResourceDetails SET status = ? WHERE id = ?`, [status, resource_details_id]);
+//       } else if (addons_id) {
+//         await pool.query(`UPDATE Addons SET status = ? WHERE id = ?`, [status, addons_id]);
+//       }
+
+//       res.json({ message: "Status updated successfully" });
+//   } catch (error) {
+//       console.error("Error updating status:", error);
+//       res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
+
 exports.updateServiceListingStatus = async (req, res) => {
   try {
-      const { id, status } = req.body;
-      
-      // Get the listing details
-      const [listing] = await pool.query(`SELECT * FROM PropertyListings WHERE id = ?`, [id]);
-      if (!listing.length) return res.status(404).json({ message: "Listing not found" });
-      
-      const { property_details_id, service_details_id } = listing[0];
-      
-      // Update status in parent table
-      await pool.query(`UPDATE PropertyListings SET status = ? WHERE id = ?`, [status, id]);
-      
-      // Update status in related child table
-      if (property_details_id) {
-          await pool.query(`UPDATE PropertyDetails SET status = ? WHERE property_details_id = ?`, [status, property_details_id]);
-      } else if (service_details_id) {
-          await pool.query(`UPDATE ServiceDetails SET status = ? WHERE service_details_id = ?`, [status, service_details_id]);
+      const { id, status, listingType, reason } = req.body;
+      console.log('====================================');
+      console.log(req.body);
+      console.log('====================================');
+  
+      // Update status in related child tables
+      // if (listingType == 'property') {
+      //     await pool.query(`UPDATE PropertyDetails SET status = ? WHERE property_details_id = ?`, [status, id]);
+      // } else if (listingType == 'service') {
+      //     await pool.query(`UPDATE ServiceDetails SET status = ? WHERE 	service_details_id = ?`, [status, id]);
+      // } else if (listingType == 'resource') {
+      //     await pool.query(`UPDATE ResourceDetails SET status = ? WHERE id = ?`, [status, id]);
+      // } else if (listingType == 'addons') {
+      //   await pool.query(`UPDATE Addons SET status = ? WHERE id = ?`, [status, id]);
+      // }
+
+      if (listingType === 'property') {
+        if (reason) {
+          await pool.query(
+            `UPDATE PropertyDetails SET status = ?, closeReason = ? WHERE property_details_id = ?`,
+            [status, reason, id]
+          );
+        } else {
+          await pool.query(
+            `UPDATE PropertyDetails SET status = ? WHERE property_details_id = ?`,
+            [status, id]
+          );
+        }
+      } else if (listingType === 'service') {
+        if (reason) {
+          await pool.query(
+            `UPDATE ServiceDetails SET status = ?, closeReason = ? WHERE service_details_id = ?`,
+            [status, reason, id]
+          );
+        } else {
+          await pool.query(
+            `UPDATE ServiceDetails SET status = ? WHERE service_details_id = ?`,
+            [status, id]
+          );
+        }
+      } else if (listingType === 'resource') {
+        if (reason) {
+          await pool.query(
+            `UPDATE ResourceDetails SET status = ?, closeReason = ? WHERE id = ?`,
+            [status, reason, id]
+          );
+        } else {
+          await pool.query(
+            `UPDATE ResourceDetails SET status = ? WHERE id = ?`,
+            [status, id]
+          );
+        }
+      } else if (listingType === 'addons') {
+        if (reason) {
+          await pool.query(
+            `UPDATE Addons SET status = ?, closeReason = ? WHERE id = ?`,
+            [status, reason, id]
+          );
+        } else {
+          await pool.query(
+            `UPDATE Addons SET status = ? WHERE id = ?`,
+            [status, id]
+          );
+        }
       }
-      
+
       res.json({ message: "Status updated successfully" });
   } catch (error) {
       console.error("Error updating status:", error);
       res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 
@@ -1082,3 +1645,192 @@ exports.getServiceStats = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+// Query for only publised data 
+
+exports.getPublishedResources = async (req, res) => {
+  try {
+      // Fetch all resource
+      const [resources] = await pool.query(`SELECT * FROM ResourceDetails WHERE status = 'published' ORDER BY id DESC`);
+
+      if (resources.length === 0) {
+          return res.status(404).json({ message: "No resource found." });
+      }
+
+       // Fetch related data for each addon
+       const resourceWithDetails = await Promise.all(resources.map(async (resource) => {
+        const [images] = await pool.query(`SELECT image_url FROM ResourceImages WHERE resource_id = ?`, [resource.id]);
+        const [paragraphs] = await pool.query(`SELECT paragraph, position FROM ResourceParagraphs WHERE resource_id = ?`, [resource.id]);
+
+        return {
+            ...resource, // Fix: Spread the actual addon object
+            images: images.map(img => img.image_url), // Attach images properly
+            paragraph: paragraphs
+        };
+    }));
+
+      res.status(200).json({
+          message: "resource retrieved successfully",
+          data: resourceWithDetails
+      });
+
+  } catch (error) {
+      console.error("Error fetching resource:", error);
+      res.status(500).json({
+          message: "Server error while fetching addons",
+          error: error.message
+      });
+  }
+};
+
+
+exports.getPublishedAddons = async (req, res) => {
+  try {
+      // Fetch all addons
+      const [addons] = await pool.query(`SELECT * FROM Addons WHERE status = 'published' ORDER BY id DESC`);
+
+      if (addons.length === 0) {
+          return res.status(404).json({ message: "No addons found." });
+      }
+
+      // Fetch related data for each addon
+      const addonsWithDetails = await Promise.all(addons.map(async (addon) => {
+          const [images] = await pool.query(`SELECT image_url FROM AddonImages WHERE addon_id = ?`, [addon.id]);
+
+          return {
+              ...addon, // Fix: Spread the actual addon object
+              images: images.map(img => img.image_url), // Attach images properly
+          };
+      }));
+
+      res.status(200).json({
+          message: "addons retrieved successfully",
+          data: addonsWithDetails
+      });
+
+  } catch (error) {
+      console.error("Error fetching addons:", error);
+      res.status(500).json({
+          message: "Server error while fetching addons",
+          error: error.message
+      });
+  }
+};
+
+
+exports.getPublishedProperties = async (req, res) => {
+  try {
+      // Fetch all properties
+      const [properties] = await pool.query(`SELECT * FROM PropertyDetails WHERE status = 'published' ORDER BY property_details_id DESC`);
+
+      if (properties.length === 0) {
+          return res.status(404).json({ message: "No properties found." });
+      }
+
+      // Fetch related data for each property
+      const propertiesWithDetails = await Promise.all(properties.map(async (property) => {
+       
+          const [images] = await pool.query(`SELECT imageUrl FROM PropertyImages WHERE propertyId = ?`, [property.property_details_id]);
+          const [floorPlans] = await pool.query(`SELECT filePath FROM PropertyFloorPlans WHERE propertyId = ?`, [property.property_details_id]);
+          const [amenities] = await pool.query(`SELECT amenitiesData FROM PropertyAmenities WHERE propertyId = ?`, [property.property_details_id]);
+          const [ownerships] = await pool.query(`SELECT filePath FROM PropertyOwnership WHERE propertyId = ?`, [property.property_details_id]);
+
+          console.log('====================================');
+          console.log(amenities);
+          console.log('====================================');
+          return {
+              ...property,
+              // location: property.location ? JSON.parse(property.location) : {},
+              // paymentOptions: property.paymentOptions ? JSON.parse(property.paymentOptions) : [],
+              // videoLinks: property.videoLinks ? JSON.parse(property.videoLinks) : [],
+              // faq: property.faq ? JSON.parse(property.faq) : [],
+              images: images.map(img => img.imageUrl),
+              floorPlans: floorPlans.map(plan => plan.filePath),
+              ownership: ownerships.map(owner => owner.filePath),
+              localAmenities: (amenities.length > 0 && amenities[0].amenitiesData) 
+              ? (typeof amenities[0].amenitiesData === "string" ? JSON.parse(amenities[0].amenitiesData) : amenities[0].amenitiesData) 
+              : {},
+          
+          };
+      }));
+
+      res.status(200).json({
+          message: "Properties retrieved successfully",
+          data: propertiesWithDetails
+      });
+
+  } catch (error) {
+      console.error("Error fetching properties:", error);
+      res.status(500).json({
+          message: "Server error while fetching properties",
+          error: error.message
+      });
+  }
+};
+
+
+exports.getSixPublishedProperties = async (req, res) => {
+  try {
+      const limit = 6 // Get limit from query params
+
+      // Construct query based on the limit
+      let query = `SELECT * FROM PropertyDetails WHERE status = 'published' ORDER BY property_details_id DESC`;
+      let queryParams = [];
+
+      if (limit) {
+          query += ` LIMIT ?`;
+          queryParams.push(limit);
+      }
+
+      // Fetch properties
+      const [properties] = await pool.query(query, queryParams);
+
+      if (properties.length === 0) {
+          return res.status(404).json({ message: "No properties found." });
+      }
+
+      // Fetch related data for each property
+      const propertiesWithDetails = await Promise.all(
+          properties.map(async (property) => {
+              const [images] = await pool.query(`SELECT imageUrl FROM PropertyImages WHERE propertyId = ?`, [property.property_details_id]);
+              const [floorPlans] = await pool.query(`SELECT filePath FROM PropertyFloorPlans WHERE propertyId = ?`, [property.property_details_id]);
+              const [amenities] = await pool.query(`SELECT amenitiesData FROM PropertyAmenities WHERE propertyId = ?`, [property.property_details_id]);
+              const [ownerships] = await pool.query(`SELECT filePath FROM PropertyOwnership WHERE propertyId = ?`, [property.property_details_id]);
+
+              return {
+                  ...property,
+                  images: images.map(img => img.imageUrl),
+                  floorPlans: floorPlans.map(plan => plan.filePath),
+                  ownership: ownerships.map(owner => owner.filePath),
+                  localAmenities: (amenities.length > 0 && amenities[0].amenitiesData) 
+                      ? (typeof amenities[0].amenitiesData === "string" ? JSON.parse(amenities[0].amenitiesData) : amenities[0].amenitiesData) 
+                      : {},
+              };
+          })
+      );
+
+      res.status(200).json({
+          message: "Properties retrieved successfully",
+          data: propertiesWithDetails
+      });
+
+  } catch (error) {
+      console.error("Error fetching properties:", error);
+      res.status(500).json({
+          message: "Server error while fetching properties",
+          error: error.message
+      });
+  }
+};
+
+

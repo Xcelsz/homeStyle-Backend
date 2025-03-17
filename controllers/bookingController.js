@@ -136,6 +136,9 @@ exports.createAppointment = async (req, res) => {
 
 // Get All Appointments
 exports.getAppointments = async (req, res) => {
+    console.log('====================================');
+    console.log('asdasdasd');
+    console.log('====================================');
     try {
         const sql = "SELECT * FROM book_appointments";
         const [results] = await pool.execute(sql);
@@ -209,6 +212,9 @@ exports.createBookingView = async (req, res) => {
 
 // Get All Booking Views
 exports.getBookingViews = async (req, res) => {
+    console.log('====================================');
+    console.log('booking');
+    console.log('====================================');
     try {
         const sql = "SELECT * FROM booking_view";
         const [results] = await pool.execute(sql);
@@ -400,7 +406,7 @@ exports.getConsultBookingById = async (req, res) => {
         const [result] = await pool.execute(sql, [id]);
 
         if (result.length === 0) {
-            return res.status(404).json({ message: "Consultancy booking not found." });
+            return res.status(404).json({ message: "Consultancy Booking not found." });
         }
         res.status(200).json(result[0]);
     } catch (error) {
@@ -423,7 +429,7 @@ exports.updateConsultBooking = async (req, res) => {
         const [result] = await pool.execute(sql, [property_id, service, location, consultancy_need, about_you, about_project, name, email, whatsapp, project_location, appointment_date, consultancy_plans, consultancy_mode, total_cost, id]);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Consultancy booking not found." });
+            return res.status(404).json({ message: "Consultancy Booking not found." });
         }
         res.status(200).json({ message: "Consultancy booking updated successfully!" });
     } catch (error) {
@@ -440,7 +446,7 @@ exports.deleteConsultBooking = async (req, res) => {
         const [result] = await pool.execute(sql, [id]);
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: "Consultancy booking not found." });
+            return res.status(404).json({ message: "Consultancy Booking not found." });
         }
         res.status(200).json({ message: "Consultancy booking deleted successfully!" });
     } catch (error) {
@@ -471,6 +477,34 @@ exports.createDecoBooking = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+
+// Get all decoration bookings
+exports.getAllDecoBookings = async (req, res) => {
+    try {
+        const [rows] = await pool.execute("SELECT * FROM book_deco ORDER BY appointment_date DESC");
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching decoration bookings:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get a single decoration booking by ID
+exports.getDecoBookingById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await pool.execute("SELECT * FROM book_deco WHERE id = ?", [id]);
+
+        if (rows.length === 0) return res.status(404).json({ message: "Decoration booking not found" });
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error("Error fetching decoration booking:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 
 
 // Fetch, Update, and Delete follow the same pattern as other controllers.
@@ -507,6 +541,34 @@ exports.createStayBooking = async (req, res) => {
 };
 
 
+// Get all stay bookings
+exports.getAllStayBookings = async (req, res) => {
+    try {
+        const [rows] = await pool.execute("SELECT * FROM book_stay ORDER BY checkInDate DESC");
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching stay bookings:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get a single stay booking by ID
+exports.getStayBookingById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await pool.execute("SELECT * FROM book_stay WHERE id = ?", [id]);
+
+        if (rows.length === 0) return res.status(404).json({ message: "Stay booking not found" });
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error("Error fetching stay booking:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
+
 // Create Property Listing Booking
 exports.createListingBooking = async (req, res) => {
     const { property_id, service, location, property_category, about_you, about_property, name, email, whatsapp, property_address, market_duration, appointment_date } = req.body;
@@ -523,3 +585,114 @@ exports.createListingBooking = async (req, res) => {
         return res.status(500).json({ error: err.message });
     }
 };
+
+
+// Get all listing bookings
+exports.getAllListingBookings = async (req, res) => {
+    try {
+        const [rows] = await pool.execute("SELECT * FROM book_listings ORDER BY appointment_date DESC");
+        res.json(rows);
+    } catch (error) {
+        console.error("Error fetching listing bookings:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Get a single listing booking by ID
+exports.getListingBookingById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [rows] = await pool.execute("SELECT * FROM book_listings WHERE id = ?", [id]);
+
+        if (rows.length === 0) return res.status(404).json({ message: "Listing booking not found" });
+
+        res.json(rows[0]);
+    } catch (error) {
+        console.error("Error fetching listing booking:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
+
+exports.updateBookingStatus = async (req, res) => {
+    try {
+        const { table, id, status } = req.body;
+
+        console.log('====================================');
+        console.log(req.body);
+        console.log('====================================');
+
+        // Validate the table name to prevent SQL injection
+        const allowedTables = ['book_deco', 'book_stay', 'book_listings', 'request_quote', 'booking_view', 'book_consult'];
+        if (!allowedTables.includes(table)) {
+            return res.status(400).json({ error: "Invalid table name" });
+        }
+
+        // Validate status value
+        const allowedStatuses = ['published', 'accepted', 'rejected', 'archived'];
+        if (!allowedStatuses.includes(status)) {
+            return res.status(400).json({ error: "Invalid status value" });
+        }
+
+        // Update query
+        const sql = `UPDATE ${table} SET status = ? WHERE id = ?`;
+        const [result] = await pool.execute(sql, [status, id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Booking not found" });
+        }
+
+        res.json({ message: "Booking status updated successfully" });
+
+    } catch (error) {
+        console.error("Error updating booking status:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
+
+exports.getBookingStats = async (req, res) => {
+    console.log("Fetching booking stats...");
+
+    try {
+        const tables = [
+            'book_deco', 'book_stay', 'book_listings', 
+            'request_quote', 'booking_view', 'book_consult'
+        ];
+
+        let stats = [];
+
+        for (let table of tables) {
+            const query = `
+                SELECT 
+                    '${table}' AS table_name,
+                    COUNT(*) AS total,
+                    COUNT(CASE WHEN status = 'published' THEN 1 END) AS published,
+                    COUNT(CASE WHEN status = 'accepted' THEN 1 END) AS accepted,
+                    COUNT(CASE WHEN status = 'rejected' THEN 1 END) AS rejected,
+                    COUNT(CASE WHEN status = 'archived' THEN 1 END) AS archived
+                FROM ${table};
+            `;
+
+            const [result] = await pool.query(query);
+            stats.push(result[0]); // Push query results
+        }
+
+        res.status(200).json({
+            message: "Booking statistics fetched successfully",
+            data: stats,
+        });
+
+    } catch (error) {
+        console.error("Error fetching booking stats:", error);
+        res.status(500).json({
+            message: "Server error while fetching booking statistics",
+            error: error.message,
+        });
+    }
+};
+
+
+

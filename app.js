@@ -20,12 +20,19 @@ app.use((req, res, next) => {
 });
 app.use(bodyParser.json());
 
+app.use("/images", express.static("images"));
+
+
 // this are the various routes
 app.use("/uploads", express.static("uploads")); // Serve static files
 app.use("/api/listings/", serviceListingRoutes);
 app.use("/api", featureRouter);
 app.use("/api/bookings", bookingRouter);
 app.use('/api/admin', authRoutes);
+
+// app.use('/api/sales', require('./controllers/salesController'));
+// app.use('/api/invoices', require('./controllers/invoicesController'));
+// app.use('/api/refunds', require('./controllers/refundsController'));
 
 
 app.listen(3030, () => {
