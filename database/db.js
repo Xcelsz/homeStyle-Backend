@@ -1,23 +1,16 @@
 // db.js
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");  // Use mysql2/promise
+require("dotenv").config();
 
-const pool = mysql.createPool({
-  host: "localhost", // Replace with your DB host
-  user: 'root',
-  password: 'Xs_shellsz202322',
-  database: "homestyle", // Replace with your DB name
-  waitForConnections: true,
-  connectionLimit: 20, // Adjust based on your needs
-  queueLimit: 0
-});
+const pool = mysql.createPool(process.env.DATABASE_URL);
 
-// Keep-alive mechanism: Ping the database at regular intervals to prevent idle timeout
-setInterval(() => {
-  pool.query('SELECT 1', (err) => {
-    if (err) {
-      console.error('Error pinging the database to keep the connection alive:', err);
-    }
+pool.getConnection()
+  .then(connection => {
+    console.log('Successfully connected to MySQL database!');
+    connection.release();
+  })
+  .catch(err => {
+    console.error('Failed to connect to MySQL database:', err.message);
   });
-}, 180000); // Ping every 3 minutes (180,000 ms)
 
 module.exports = pool;
