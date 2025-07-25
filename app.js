@@ -5,7 +5,7 @@ const serviceListingRoutes = require("./routes/serviceListingRoutes");
 const featureRouter = require("./routes/featureRoute")
 const bookingRouter = require("./routes/bookingRoute")
 const PORT = process.env.PORT || 3000
-import config from "./config.js"
+import config from "./database/config.js"
 
 const authRoutes = require('./routes/auth/admin/authRoute');
 const dotenv = require('dotenv');
