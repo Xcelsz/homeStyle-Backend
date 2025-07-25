@@ -4,8 +4,6 @@ const bodyParser = require("body-parser");
 const serviceListingRoutes = require("./routes/serviceListingRoutes");
 const featureRouter = require("./routes/featureRoute")
 const bookingRouter = require("./routes/bookingRoute")
-const PORT = process.env.PORT || 3000
-const config =  require("./database/config.js");
 
 const authRoutes = require('./routes/auth/admin/authRoute');
 const dotenv = require('dotenv');
@@ -15,7 +13,7 @@ const app = express();
 app.use(express.json());
 app.use(cors(
   {
-    origin: config.corsOrigin,
+    origin: process.env.corsOrigin || "*",
     credentials: true,
   }
 ));
@@ -41,6 +39,8 @@ app.use('/api/admin', authRoutes);
 // app.use('/api/invoices', require('./controllers/invoicesController'));
 // app.use('/api/refunds', require('./controllers/refundsController'));
 
+
+const PORT = process.env.PORT || 3000
 
 app.listen(PORT, () => {
   console.log(`Backend server is running on ${PORT}`);
