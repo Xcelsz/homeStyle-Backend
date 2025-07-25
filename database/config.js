@@ -1,4 +1,4 @@
-const dotenv = required("dotenv")
+const dotenv = require("dotenv")
 
 dotenv.config()
 
