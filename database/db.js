@@ -1,8 +1,19 @@
 // db.js
 const mysql = require("mysql2/promise");  // Use mysql2/promise
+import config from "./config.js"
 require("dotenv").config();
 
-const pool = mysql.createPool(process.env.DATABASE_URL);
+const pool = mysql.createPool({
+  host: config.database.host,
+  port: config.database.port,
+  user: config.database.user,
+  password: config.database.password,
+  database: config.database.database,
+  connectionLimit: config.database.connectionLimit,
+  acquireTimeout: config.database.acquireTimeout,
+  timeout: config.database.timeout,
+  reconnect: true,
+});
 
 pool.getConnection()
   .then(connection => {

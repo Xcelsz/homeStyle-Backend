@@ -5,6 +5,7 @@ const serviceListingRoutes = require("./routes/serviceListingRoutes");
 const featureRouter = require("./routes/featureRoute")
 const bookingRouter = require("./routes/bookingRoute")
 const PORT = process.env.PORT || 3000
+import config from "./config.js"
 
 const authRoutes = require('./routes/auth/admin/authRoute');
 const dotenv = require('dotenv');
@@ -14,7 +15,7 @@ const app = express();
 app.use(express.json());
 app.use(cors(
   {
-    origin: process.env.corsOrigin,
+    origin: config.corsOrigin,,
     credentials: true,
   }
 ));
