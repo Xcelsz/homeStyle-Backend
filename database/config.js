@@ -1,4 +1,4 @@
-import dotenv from "dotenv"
+const dotenv = required("dotenv")
 
 dotenv.config()
 
