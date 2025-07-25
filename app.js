@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const serviceListingRoutes = require("./routes/serviceListingRoutes");
 const featureRouter = require("./routes/featureRoute")
 const bookingRouter = require("./routes/bookingRoute")
+const PORT = process.env.PORT || 3000
 
 const authRoutes = require('./routes/auth/admin/authRoute');
 const dotenv = require('dotenv');
@@ -40,6 +41,6 @@ app.use('/api/admin', authRoutes);
 // app.use('/api/refunds', require('./controllers/refundsController'));
 
 
-app.listen(3030, () => {
-  console.log("Backend server is running on 3030");
+app.listen(PORT, () => {
+  console.log(`Backend server is running on ${PORT}`);
 });
