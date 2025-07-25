@@ -15,6 +15,7 @@ app.use(cors(
   {
     origin: process.env.corsOrigin,
     credentials: true,
+  }
 ));
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
