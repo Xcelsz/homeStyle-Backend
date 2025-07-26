@@ -12,8 +12,8 @@ dotenv.config()
 const app = express();
 app.use(express.json());
 const allowedOrigins = [
-    'https://dev.mibesfront.compassionate.217-154-36-100.plesk.page',
-    'https://dev.admindash.compassionate.217-154-36-100.plesk.page',
+    'https://homestyle.compassionate.217-154-36-100.plesk.page',
+    'https://homestyle.dashboard.compassionate.217-154-36-100.plesk.page',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:8080',
