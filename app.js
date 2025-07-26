@@ -11,12 +11,37 @@ dotenv.config()
 
 const app = express();
 app.use(express.json());
-app.use(cors(
-  {
-    origin: process.env.corsOrigin || "*",
+const allowedOrigins = [
+    'https://homestyle.compassionate.217-154-36-100.plesk.page',
+    'https://homestyle.dashboard.compassionate.217-154-36-100.plesk.page',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:8080',
+];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+            console.error(msg, "Origin: ", origin);
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Cache-Control', 
+        'Pragma',        
+        'Expires'        
+    ],
     credentials: true,
-  }
-));
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Pragma', 'no-cache');
