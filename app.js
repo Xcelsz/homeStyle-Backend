@@ -36,6 +36,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle all OPTIONS requests
 console.log("CORS enabled with allowed origins:", allowedOrigins);
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
