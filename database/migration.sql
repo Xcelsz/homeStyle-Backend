@@ -681,4 +681,6 @@ VALUES
 
 INSERT INTO AdminUser (username, password, company, role)
 VALUES 
-    ('admin', '$2a$10$samplehashedpassword1234567890', 'RealEstateCo', 'admin');
+    ('admin', '$2y$10$e8KB5jSiMEs1V82t7GGrPO/GESIiXYACPCzboMeX4jGhlm3BFGkoW', 'RealEstateCo', 'admin'),
+    ('admin2', '$2y$10$e8KB5jSiMEs1V82t7GGrPO/GESIiXYACPCzboMeX4jGhlm3BFGkoW', 'RealEstateCo', 'admin');
+    

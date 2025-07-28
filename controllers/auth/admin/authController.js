@@ -46,14 +46,14 @@ exports.login = async (req, res) => {
         const [results] = await pool.execute('SELECT * FROM AdminUser WHERE username = ?', [username]);
 
         if (results.length === 0) {
-            return res.status(401).json({ message: 'Invalid username or password' });
+            return res.status(401).json({ message: 'Invalid username or password 0' });
         }
 
         const user = results[0];
         const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid username or password' });
+            return res.status(401).json({ message: 'Invalid username or password 1' });
         }
 
         // Generate JWT token

@@ -11,13 +11,7 @@ dotenv.config()
 
 const app = express();
 app.use(express.json());
-const allowedOrigins = [
-    'https://homestyle.compassionate.217-154-36-100.plesk.page',
-    'https://homestyle.dashboard.compassionate.217-154-36-100.plesk.page',
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:8080',
-];
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5000'];
 
 const corsOptions = {
     origin: function (origin, callback) {
@@ -42,6 +36,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
+console.log("CORS enabled with allowed origins:", allowedOrigins);
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Pragma', 'no-cache');
